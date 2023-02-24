@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.Intrinsics;
+using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ConsoleApp2
 {
@@ -13,7 +17,8 @@ namespace ConsoleApp2
             //Console.WriteLine(Solution.solution3(4, 5, new int[] { 1, 0, 3, 1, 2 }, new int[] { 0, 3, 0, 4, 0 }));
             //Console.WriteLine(string.Join(',', Solution.solution4(new int[] { 1, 0, 3, 1, 2 }, 1, 4)));
             //Console.WriteLine(string.Join(',', Solution.solution5(new int[,] { { 40, 2900 }, { 23, 10000 }, { 11, 5200 }, { 5, 5900 }, { 40, 3100 }, { 27, 9200 }, { 32, 6900 } }, new int[] { 1300, 1500, 1600, 4900 })));
-            Console.WriteLine(string.Join(',', Solution.solution6(new long[] { 63, 111, 95 })));
+            //Console.WriteLine(string.Join(',', Solution.solution6(new long[] { 63, 111, 95 })));
+            Console.WriteLine(string.Join(',', Solution.solution8(new string[] { "UPDATE 1 1 A", "UPDATE 2 2 B", "UPDATE 3 3 C", "UPDATE 4 4 D", "MERGE 1 1 2 2", "MERGE 1 1 2 2", "MERGE 3 3 4 4", "MERGE 1 1 4 4", "UNMERGE 3 3", "PRINT 1 1", "PRINT 2 2", "PRINT 3 3", "PRINT 4 4"})));
         }
     }
     public static class Solution
@@ -274,27 +279,297 @@ namespace ConsoleApp2
 
         public static int[] solution6(long[] numbers)
         {
-            int[] answer = new int[numbers.Length];
+            List<int> answer = new List<int>();
             for (int i = 0; i < numbers.Length; i++)
             {
                 string binary = Convert.ToString(numbers[i], 2);
-                int result = 1;
-                for (int j = (binary.Length / 2) - 1; j >= 0; j -= 2)
+                answer.Add(Check(binary));
+            }
+            return answer.ToArray();
+        }
+        public static int Check(string binary)
+        {
+            string number = binary;
+            StringBuilder stringBuilder = new StringBuilder();
+            while (number.Length > 1)
+            {
+                for (int j = number.Length - 1; j >= 0; j -= 4)
                 {
-                    List<int> list = new List<int>();
-                    if (binary[j] == '0')
+                    int firstIndex = Math.Clamp(j - 2, 0, number.Length);
+                    int count = j - firstIndex + 1;
+                    string subStr = number.Substring(firstIndex, count);
+                    int subNum = Convert.ToInt32(subStr, 2);
+                    if (subNum == 0)
+                        stringBuilder.Insert(0, "0");
+                    else if (subNum == 2 || subNum == 3 || subNum == 6 || subNum == 7)
+                        stringBuilder.Insert(0, "1");
+                    else
                     {
-                        result = 0;
-                        break;
+                        return 0;
+                    }
+
+                    if(firstIndex > 0)
+                    {
+                        stringBuilder.Insert(0, number[firstIndex - 1]);
                     }
                 }
-                answer[i] = result;
+                number = stringBuilder.ToString();
+                stringBuilder.Clear();
             }
-            return answer;
+            return 1;
         }
-        public static void CheckArray(string number)
+
+        public static string[] solution7(string[] strings, int n)
         {
-            if(!number.Length+1))
+            List<string> stringList = strings.ToList();
+            stringList.Sort((x, y) =>
+            {
+                if (x[n] < y[n])
+                    return -1;
+                else if (x[n] > y[n])
+                    return 1;
+                else
+                    return x.CompareTo(y);
+            });
+
+            return stringList.ToArray();
+        }
+
+        public static string[] solution8(string[] commands)
+        {
+            Graph graph = new Graph(4, 4);
+            return graph.Command(commands);
+        }
+        public class Graph
+        {
+            Cell[,] cells;
+            public Graph(int r, int c)
+            {
+                cells = new Cell[r, c];
+                for (int i = 0; i < r; i++)
+                    for (int j = 0; j < c; j++)
+                        cells[i, j] = new Cell();
+            }
+            public void Update(int r, int c, string value)
+            {
+                cells[r, c].Update(value);
+            }
+            public void Update(string prev, string value)
+            {
+                foreach(Cell cell in cells)
+                {
+                    cell.Update(prev, value);
+                }
+            }
+            public void Merge(int r1, int c1, int r2, int c2)
+            {
+                if (r1 == r2 && c1 == c2)
+                    return;
+                cells[r1, c1].MergeTo(cells[r2, c2]);
+            }
+            public void UnMerge(int r, int c)
+            {
+                cells[r, c].UnMerge();
+            }
+            public string Print(int r, int c)
+            {
+                return cells[r, c].ToString();
+            }
+            public string[] Command(string[] commands)
+            {
+                List<string> result = new List<string>();
+                foreach(string command in commands)
+                {
+                    string[] coms = command.Split(' ');
+
+                    Console.WriteLine(string.Join(',', coms));
+                    switch (coms[0])
+                    {
+                        case "UPDATE":
+                            if (coms.Length > 3)
+                            {
+                                int r = int.Parse(coms[1]) - 1;
+                                int c = int.Parse(coms[2]) - 1;
+                                string value = coms[3];
+                                Update(r, c, value);
+                            }
+                            else
+                            {
+                                string prev = coms[1];
+                                string value = coms[2];
+                                Update(prev, value);
+                            }
+                            break;
+                        case "MERGE":
+                            {
+                                int r1 = int.Parse(coms[1]) - 1;
+                                int c1 = int.Parse(coms[2]) - 1;
+                                int r2 = int.Parse(coms[3]) - 1;
+                                int c2 = int.Parse(coms[4]) - 1;
+                                Merge(r1, c1, r2, c2);
+                            }
+                            break;
+                        case "UNMERGE":
+                            {
+                                int r = int.Parse(coms[1]) - 1;
+                                int c = int.Parse(coms[2]) - 1;
+                                UnMerge(r, c);
+                            }
+                            break;
+                        case "PRINT":
+                            {
+                                int r = int.Parse(coms[1]) - 1;
+                                int c = int.Parse(coms[2]) - 1;
+                                result.Add(Print(r, c));
+                            }
+                            break;
+                    }
+                    Console.Clear();
+                    Console.WriteLine(command);
+                    for(int i = 0; i < 4; i++)
+                    {
+                        for(int j = 0; j < 4; j++)
+                        {
+                            Console.Write($"{cells[i, j], 10}");
+                        }
+                        Console.WriteLine();
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    cells[0, 2].IsMerge();
+                    Console.ReadKey();
+                }
+                return result.ToArray();
+            }
+        }
+        public class Cell
+        {
+            string value;
+            MergeCell mergeCell;
+            bool isMerge;
+            public Cell()
+            {
+                Reset();
+                isMerge = false;
+            }
+            public Cell(string value)
+            {
+                this.value = value;
+                isMerge = false;
+            }
+            public void MergeTo(Cell cell)
+            {
+                if (isMerge)
+                {
+                    if (cell.isMerge)
+                    {
+                        if (mergeCell != cell.mergeCell)
+                            cell.mergeCell.MergeFrom(this.mergeCell);
+                    }
+                    else
+                        cell.MergeFrom(this.mergeCell);
+                }
+                else
+                {
+                    if (cell.isMerge)
+                        MergeFrom(cell.mergeCell);
+                    else
+                    {
+                        MergeFrom(new MergeCell(value));
+                        cell.MergeFrom(this.mergeCell);
+                    }
+                }
+            }
+            public void MergeFrom(MergeCell mergeCell)
+            {
+                this.mergeCell = mergeCell;
+                this.mergeCell.Add(this);
+                isMerge = true;
+            }
+            public void UnMerge()
+            {
+                if (isMerge)
+                {
+                    value = mergeCell.UnMerge();
+                    isMerge = false;
+                }
+            }
+            public void Update(string value)
+            {
+                if (isMerge)
+                    mergeCell.Update(value);
+                else
+                    this.value = value;
+            }
+            public void Update(string prev, string value)
+            {
+                if (isMerge)
+                    mergeCell.Update(prev, value);
+                else
+                {
+                    if (this.value == prev)
+                        this.value = value;
+                }
+            }
+            public void Reset()
+            {
+                value = "EMPTY";
+                mergeCell = null;
+                isMerge = false;
+            }
+            public override string ToString()
+            {
+                if (isMerge)
+                    return mergeCell.ToString();
+                else
+                    return value;
+            }
+            public void IsMerge()
+            {
+                Console.WriteLine($"{value}, {isMerge}, {mergeCell?.ToString()}");
+            }
+        }
+        public class MergeCell
+        {
+            string value;
+            List<Cell> mergeCells;
+            public MergeCell(string value)
+            {
+                this.value = value;
+                mergeCells= new List<Cell>();
+            }
+            public void Add(Cell cell)
+            {
+                mergeCells.Add(cell);
+            }
+            public void MergeFrom(MergeCell mergeCell)
+            {
+                foreach(Cell cell in mergeCells)
+                {
+                    cell.MergeFrom(mergeCell);
+                }
+            }
+            public string UnMerge()
+            {
+                foreach(Cell cell in mergeCells)
+                {
+                    cell.Reset();
+                }
+                return value;
+            }
+            public void Update(string value)
+            {
+                this.value = value;
+            }
+            public void Update(string prev, string value)
+            {
+                if (this.value == prev)
+                    this.value = value;
+            }
+            public override string ToString()
+            {
+                return value;
+            }
         }
     }
 }
