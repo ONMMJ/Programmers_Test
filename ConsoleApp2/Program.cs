@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Text;
+using static ConsoleApp2.Solution;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace ConsoleApp2
@@ -18,8 +19,8 @@ namespace ConsoleApp2
             //Console.WriteLine(string.Join(',', Solution.solution4(new int[] { 1, 0, 3, 1, 2 }, 1, 4)));
             //Console.WriteLine(string.Join(',', Solution.solution5(new int[,] { { 40, 2900 }, { 23, 10000 }, { 11, 5200 }, { 5, 5900 }, { 40, 3100 }, { 27, 9200 }, { 32, 6900 } }, new int[] { 1300, 1500, 1600, 4900 })));
             //Console.WriteLine(string.Join(',', Solution.solution6(new long[] { 63, 111, 95 })));
-            Console.WriteLine(string.Join(',', Solution.solution8(new string[] { "UPDATE 1 1 A", "UPDATE 2 2 B", "UPDATE 3 3 C", "UPDATE 4 4 D", "MERGE 1 1 2 2", "MERGE 1 1 2 2", "MERGE 3 3 4 4", "MERGE 1 1 4 4", "UNMERGE 3 3", "PRINT 1 1", "PRINT 2 2", "PRINT 3 3", "PRINT 4 4"})));
-        }
+            Console.WriteLine(string.Join(',', Solution.solution8(new string[] { "MERGE 1 1 1 3", "MERGE 2 3 1 3", "UPDATE 1 1 A", "UPDATE 2 2 B", "UPDATE 3 3 C", "UPDATE 4 4 D", "MERGE 3 3 4 4", "MERGE 1 1 4 4", "UPDATE 2 3 D", "UPDATE D A", "UNMERGE 3 3", "PRINT 1 1", "PRINT 2 2", "PRINT 3 3", "PRINT 4 4"})));
+        } 
     }
     public static class Solution
     {
@@ -382,7 +383,6 @@ namespace ConsoleApp2
                 {
                     string[] coms = command.Split(' ');
 
-                    Console.WriteLine(string.Join(',', coms));
                     switch (coms[0])
                     {
                         case "UPDATE":
@@ -436,7 +436,6 @@ namespace ConsoleApp2
                     }
                     Console.WriteLine();
                     Console.WriteLine();
-                    cells[0, 2].IsMerge();
                     Console.ReadKey();
                 }
                 return result.ToArray();
@@ -459,26 +458,83 @@ namespace ConsoleApp2
             }
             public void MergeTo(Cell cell)
             {
+                if(isMerge)
+                {
+                    if(mergeCell.value.Equals(string.Empty))
+                    {
+                        if(!cell.isMerge)
+                            cell.MergeFrom(new MergeCell(cell.value));
+
+                        mergeCell.MergeFrom(cell.mergeCell);
+                    }
+                    else
+                    {
+                        if (cell.isMerge)
+                            cell.mergeCell.MergeFrom(this.mergeCell);
+                        else
+                            cell.MergeFrom(this.mergeCell);
+                    }
+                }
+                else
+                {
+                    if (value.Equals(string.Empty))
+                    {
+                        if (!cell.isMerge)
+                            cell.MergeFrom(new MergeCell(cell.value));
+
+                        MergeFrom(cell.mergeCell);
+                    }
+                    else
+                    {
+                        MergeFrom(new MergeCell(value));
+                        if (cell.isMerge)
+                            cell.mergeCell.MergeFrom(this.mergeCell);
+                        else
+                            cell.MergeFrom(this.mergeCell);
+                    }
+                }
+                /*
                 if (isMerge)
                 {
                     if (cell.isMerge)
                     {
                         if (mergeCell != cell.mergeCell)
-                            cell.mergeCell.MergeFrom(this.mergeCell);
+                        {
+                            if (mergeCell.value.Equals(string.Empty))
+                                mergeCell.MergeFrom(cell.mergeCell);
+                            else
+                                cell.mergeCell.MergeFrom(this.mergeCell);
+                        }
                     }
                     else
-                        cell.MergeFrom(this.mergeCell);
+                    {
+                        if (mergeCell.value.Equals(string.Empty))
+                        {
+                            cell.MergeFrom(new MergeCell(cell.value));
+                            mergeCell.MergeFrom(cell.mergeCell);
+                        }
+                        else
+                            cell.MergeFrom(this.mergeCell);
+                    }
                 }
                 else
                 {
                     if (cell.isMerge)
-                        MergeFrom(cell.mergeCell);
+                    {
+                        if (value.Equals(string.Empty))
+                            MergeFrom(cell.mergeCell);
+                        else
+                        {
+                            MergeFrom(new MergeCell(value));
+                            cell.mergeCell.MergeFrom(this.mergeCell);
+                        }
+                    }
                     else
                     {
                         MergeFrom(new MergeCell(value));
                         cell.MergeFrom(this.mergeCell);
                     }
-                }
+                }*/
             }
             public void MergeFrom(MergeCell mergeCell)
             {
@@ -513,7 +569,7 @@ namespace ConsoleApp2
             }
             public void Reset()
             {
-                value = "EMPTY";
+                value = string.Empty;
                 mergeCell = null;
                 isMerge = false;
             }
@@ -522,16 +578,17 @@ namespace ConsoleApp2
                 if (isMerge)
                     return mergeCell.ToString();
                 else
-                    return value;
-            }
-            public void IsMerge()
-            {
-                Console.WriteLine($"{value}, {isMerge}, {mergeCell?.ToString()}");
+                {
+                    if (value.Equals(string.Empty))
+                        return "EMPTY";
+                    else
+                        return value;
+                }
             }
         }
         public class MergeCell
         {
-            string value;
+            public string value;
             List<Cell> mergeCells;
             public MergeCell(string value)
             {
@@ -544,16 +601,16 @@ namespace ConsoleApp2
             }
             public void MergeFrom(MergeCell mergeCell)
             {
-                foreach(Cell cell in mergeCells)
+                for(int i = 0; i< mergeCells.Count; i++)
                 {
-                    cell.MergeFrom(mergeCell);
+                    mergeCells[i].MergeFrom(mergeCell);
                 }
             }
             public string UnMerge()
             {
-                foreach(Cell cell in mergeCells)
+                for (int i = 0; i < mergeCells.Count; i++)
                 {
-                    cell.Reset();
+                    mergeCells[i].Reset();
                 }
                 return value;
             }
@@ -568,7 +625,10 @@ namespace ConsoleApp2
             }
             public override string ToString()
             {
-                return value;
+                if (value.Equals(string.Empty))
+                    return "EMPTY";
+                else
+                    return value;
             }
         }
     }
